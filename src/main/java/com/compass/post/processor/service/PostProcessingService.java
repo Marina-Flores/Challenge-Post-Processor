@@ -6,8 +6,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-
 import com.compass.post.processor.dto.PostRequest;
+import com.compass.post.processor.entity.Comment;
 import com.compass.post.processor.entity.History;
 import com.compass.post.processor.entity.Post;
 import com.compass.post.processor.enums.PostState;
@@ -44,11 +44,32 @@ public class PostProcessingService {
             return;
 
         histories.add(new History(PostState.POST_OK, new Date()));
-        for (History history : histories) {
-            history.setPost(post);
-        }    
-        post.setHistory(histories);  
-        postRepository.save(post);
+
+        post.setHistory(histories);
+        // Post postSaved = postRepository.save(post);
+
+        post.getHistory().add(new History(PostState.COMMENTS_FIND, new Date()));
+        // postRepository.save(postSaved);
+
+        // Retrieving Post Comments
+        List<Comment> comments = fetchComments(post);
+
+        int lastIndex = post.getHistory().size() - 1;
+
+        if (comments != null && post.getHistory().get(lastIndex).status != PostState.DISABLED) {
+            for (Comment comment : comments) {
+                comment.setPost(post);
+            }
+
+            post.setComments(comments);
+            post.getHistory().add(new History(PostState.COMMENTS_OK, new Date()));
+            post.getHistory().add(new History(PostState.ENABLED, new Date()));
+            
+            for (History history : histories) {
+                history.setPost(post);
+            }
+            postRepository.save(post);
+        }
     }
 
     public Post fetchPost(Long id) {
@@ -58,8 +79,18 @@ public class PostProcessingService {
             List<History> histories = Arrays.asList(new History(PostState.FAILED, new Date()));
             Post post = new Post(histories);
             postRepository.save(post);
-
             return post;
+        }
+    }
+
+    public List<Comment> fetchComments(Post post) {
+        try {
+            return apiService.fetchCommentsByPost(post);
+        } catch (Exception e) {
+            post.getHistory().add(new History(PostState.FAILED, new Date()));
+            post.getHistory().add(new History(PostState.DISABLED, new Date()));
+            postRepository.save(post);
+            return null;
         }
     }
 

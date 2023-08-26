@@ -11,6 +11,8 @@ import com.compass.post.processor.dto.PostRequest;
 import com.compass.post.processor.entity.Post;
 import com.compass.post.processor.service.ApiService;
 import com.compass.post.processor.service.PostProcessingService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 @RestController
 @RequestMapping("/api/post")
@@ -26,7 +28,15 @@ public class PostController {
 
     @GetMapping("/{postId}")
     public Post getPostById(@PathVariable Long postId) {
-        return apiService.fetchPostById(postId);
+        try {
+            return apiService.fetchPostById(postId);
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+            return null;
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
     }    
 
     @PostMapping
