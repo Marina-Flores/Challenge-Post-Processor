@@ -1,0 +1,57 @@
+# Spring Boot target directory
+target/
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Maven-specific files
+mvnw
+mvnw.cmd
+.mvn/
+
+# Gradle-specific files
+gradle/
+gradlew
+gradlew.bat
+
+# Compiled class file
+*.class
+
+# Logs
+*.log
+logs/
+*.log.*
+*.pid
+
+# Temporary files
+*.tmp
+
+# IntelliJ IDEA
+*.iml
+.idea_workspace/
+
+# Eclipse
+.settings/
+.classpath
+.project
+.factorypath
+.settings
+
+# Gradle
+.gradle/
+build/
+
+# H2 Database files
+db.*
+
+# Spring Boot application properties
+src/main/resources/application.properties
+src/main/resources/application.yml
+
+# Editor-specific
+*.swp
+*~
+
+# Doc
+HELP.md
