@@ -1,6 +1,9 @@
 package com.compass.post.processor.entity;
 
 import java.util.Date;
+
+import com.compass.post.processor.enums.PostState;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,9 +12,20 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class History {    
+
+    public History(PostState state, Date date) {
+        this.date = date; 
+        this.status = state;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +34,7 @@ public class History {
     @Temporal(TemporalType.TIMESTAMP)
     public Date date;
 
-    public String status;
+    public PostState status;
 
     @ManyToOne
     @JoinColumn(name = "post_id")

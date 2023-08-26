@@ -2,7 +2,6 @@ package com.compass.post.processor.entity;
 
 import java.util.Date;
 import com.compass.post.processor.enums.PostState;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;

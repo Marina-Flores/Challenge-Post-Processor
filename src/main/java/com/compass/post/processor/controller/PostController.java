@@ -20,4 +20,6 @@ public class PostController {
     public Post getPostById(@PathVariable Long postId) {
         return apiService.fetchPostById(postId);
     }    
+
+    
 }
