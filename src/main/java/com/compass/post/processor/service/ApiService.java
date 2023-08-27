@@ -22,10 +22,14 @@ public class ApiService {
     }
 
     public Post fetchPostById(Long postId) throws JsonMappingException, JsonProcessingException {
-        String response = restTemplate.getForObject(URL + postId, String.class);
-        ObjectMapper mapper = new ObjectMapper();
-        Post post = mapper.readValue(response, Post.class);
-        return post;
+        try{
+            String response = restTemplate.getForObject(URL + postId, String.class);
+            ObjectMapper mapper = new ObjectMapper();
+            Post post = mapper.readValue(response, Post.class);
+            return post;
+        } catch(Exception ex){
+            return null;
+        }       
     }
 
     public List<Comment> fetchCommentsByPost(Post post) {

@@ -48,7 +48,7 @@ public class PostController {
     @PostMapping
     public ResponseEntity<?> processPost(@RequestBody PostRequest request) {
         try {
-            postProcessingService.processPost(request);
+            postProcessingService.processPost(request, false);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             ErrorResponse error = new ErrorResponse(
