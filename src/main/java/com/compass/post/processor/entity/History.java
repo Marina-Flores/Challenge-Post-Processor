@@ -24,6 +24,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class History {    
 
+    public History(PostState state, Date date, Post post) {
+        this.date = date; 
+        this.status = state;
+        this.post = post;
+    }
+
     public History(PostState state, Date date) {
         this.date = date; 
         this.status = state;

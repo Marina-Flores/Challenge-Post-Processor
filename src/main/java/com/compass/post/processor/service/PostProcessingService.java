@@ -1,18 +1,27 @@
 package com.compass.post.processor.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException.NotFound;
+
 import com.compass.post.processor.dto.PostRequest;
 import com.compass.post.processor.entity.Comment;
 import com.compass.post.processor.entity.History;
 import com.compass.post.processor.entity.Post;
 import com.compass.post.processor.enums.PostState;
+import com.compass.post.processor.exception.IllegalArgumentException;
 import com.compass.post.processor.exception.PostAlreadyExistsException;
+import com.compass.post.processor.exception.PostNotFoundException;
 import com.compass.post.processor.repository.PostRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 
 @Service
 public class PostProcessingService {
@@ -27,6 +36,18 @@ public class PostProcessingService {
     }
 
     public void processPost(PostRequest request) {
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        Set<ConstraintViolation<PostRequest>> violations = validator.validate(request);
+
+        if (!violations.isEmpty()) {
+            List<String> errorMessages = new ArrayList<>();
+            for (ConstraintViolation<PostRequest> violation : violations) {
+                errorMessages.add(violation.getMessage());
+            }
+            String errorMessage = String.join(", ", errorMessages);
+            throw new IllegalArgumentException(errorMessage);
+        }
+
         // Start process with status Created
         List<History> histories = new ArrayList<>();
         histories.add(new History(PostState.CREATED, new Date()));
@@ -46,40 +67,63 @@ public class PostProcessingService {
         histories.add(new History(PostState.POST_OK, new Date()));
 
         post.setHistory(histories);
-        // Post postSaved = postRepository.save(post);
 
-        post.getHistory().add(new History(PostState.COMMENTS_FIND, new Date()));
-        // postRepository.save(postSaved);
+        for (History history : histories) {
+            history.setPost(post);
+        }
 
         // Retrieving Post Comments
+        post.getHistory().add(new History(PostState.COMMENTS_FIND, new Date(), post));
+
         List<Comment> comments = fetchComments(post);
 
-        int lastIndex = post.getHistory().size() - 1;
-
-        if (comments != null && post.getHistory().get(lastIndex).status != PostState.DISABLED) {
+        if (comments != null) {
             for (Comment comment : comments) {
                 comment.setPost(post);
             }
 
             post.setComments(comments);
-            post.getHistory().add(new History(PostState.COMMENTS_OK, new Date()));
-            post.getHistory().add(new History(PostState.ENABLED, new Date()));
-            
-            for (History history : histories) {
-                history.setPost(post);
-            }
+            post.getHistory().add(new History(PostState.COMMENTS_OK, new Date(), post));
+            post.getHistory().add(new History(PostState.ENABLED, new Date(), post));
+
             postRepository.save(post);
         }
+    }
+
+    public void disablePost(PostRequest request) {
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        Set<ConstraintViolation<PostRequest>> violations = validator.validate(request);
+
+        if (!violations.isEmpty()) {
+            List<String> errorMessages = new ArrayList<>();
+            for (ConstraintViolation<PostRequest> violation : violations) {
+                errorMessages.add(violation.getMessage());
+            }
+            String errorMessage = String.join(", ", errorMessages);
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+         // Check if the post id already exists in the database
+        Optional<Post> postOp = postRepository.findById(request.id);
+
+        if (!postOp.isPresent())
+            throw new PostNotFoundException("Post with ID " + request.id + " does not exists in the database.");
+
+        Post post = postOp.get();    
+
+        if(post.getHistory().get(post.getHistory().size() - 1).getStatus() != PostState.ENABLED)
+            throw new IllegalArgumentException("Post with ID " + request.id + " needs to have the current status ENABLED in order to be DISABLED.");
+
+        post.getHistory().add(new History(PostState.DISABLED, new Date(), post));
+
+        postRepository.save(post);
     }
 
     public Post fetchPost(Long id) {
         try {
             return apiService.fetchPostById(id);
         } catch (Exception e) {
-            List<History> histories = Arrays.asList(new History(PostState.FAILED, new Date()));
-            Post post = new Post(histories);
-            postRepository.save(post);
-            return post;
+            return null;
         }
     }
 
