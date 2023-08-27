@@ -1,16 +1,16 @@
 package com.compass.post.processor.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.*;
 import lombok.*;
-import jakarta.validation.constraints.*;
 
 @Entity
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post {
+public class Post implements Cloneable {
 
     public Post(List<History> history) {
         this.history = history;
@@ -39,4 +39,12 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<History> history;
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        Post clonedPost = (Post) super.clone();
+        clonedPost.setComments(new ArrayList<>(this.comments));
+        clonedPost.setHistory(new ArrayList<>(this.history));
+        return clonedPost;
+    }
 }

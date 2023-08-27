@@ -5,11 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException.NotFound;
-
 import com.compass.post.processor.dto.PostRequest;
 import com.compass.post.processor.entity.Comment;
 import com.compass.post.processor.entity.History;
@@ -119,6 +115,63 @@ public class PostProcessingService {
         postRepository.save(post);
     }
 
+    public void reprocessPost(PostRequest request) throws CloneNotSupportedException{
+        List<History> histories = new ArrayList<>();
+        histories.add(new History(PostState.UPDATING, new Date()));
+
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        Set<ConstraintViolation<PostRequest>> violations = validator.validate(request);
+
+        if (!violations.isEmpty()) {
+            List<String> errorMessages = new ArrayList<>();
+            for (ConstraintViolation<PostRequest> violation : violations) {
+                errorMessages.add(violation.getMessage());
+            }
+            String errorMessage = String.join(", ", errorMessages);
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        // Check if the post id already exists in the database
+        Optional<Post> postOp = postRepository.findById(request.id);
+
+        if (!postOp.isPresent())
+            throw new PostNotFoundException("Post with ID " + request.id + " does not exists in the database.");
+
+        Post post = (Post) postOp.get().clone();
+    
+        histories.add(new History(PostState.POST_FIND, new Date()));
+
+        PostState currentState = post.getHistory().get(post.getHistory().size() - 1).getStatus();
+
+        if(currentState != PostState.ENABLED && currentState != PostState.DISABLED)
+            throw new IllegalArgumentException("Post with ID " + request.id + " needs to have the current status ENABLED or DISABLED in order to be REPROCESSED.");
+
+        histories.add(new History(PostState.POST_OK, new Date()));
+        
+         for (History history : histories) {
+            history.setPost(post);
+        }
+
+        post.setHistory(histories);
+
+        // Retrieving Post Comments
+        post.getHistory().add(new History(PostState.COMMENTS_FIND, new Date(), post));
+
+        List<Comment> comments = fetchComments(post);
+
+        if (comments != null) {
+            for (Comment comment : comments) {
+                comment.setPost(post);
+            }
+
+            post.setComments(comments);
+            post.getHistory().add(new History(PostState.COMMENTS_OK, new Date(), post));
+            post.getHistory().add(new History(PostState.ENABLED, new Date(), post));
+
+            postRepository.save(post);
+        }
+    }
+
     public Post fetchPost(Long id) {
         try {
             return apiService.fetchPostById(id);
@@ -137,5 +190,4 @@ public class PostProcessingService {
             return null;
         }
     }
-
 }
