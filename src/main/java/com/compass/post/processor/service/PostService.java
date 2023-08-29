@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-
 import com.compass.post.processor.dto.CommentResponse;
 import com.compass.post.processor.dto.HistoryResponse;
 import com.compass.post.processor.dto.PostResponse;
@@ -12,6 +11,10 @@ import com.compass.post.processor.entity.Comment;
 import com.compass.post.processor.entity.History;
 import com.compass.post.processor.entity.Post;
 import com.compass.post.processor.repository.PostRepository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class PostService {
@@ -34,11 +37,13 @@ public class PostService {
         return postRepository.findAll();
     }
 
-    public List<PostResponse> getAllPostsMapped() {
-        List<Post> posts = postRepository.findAll();
-        List<PostResponse> postResponses = new ArrayList<>();
+    public List<PostResponse> getAllPostsMapped(int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-        for (Post post : posts) {
+        Page<Post> posts = postRepository.findAll(pageable);
+        List<PostResponse> postResponses = new ArrayList<>();
+        
+        for (Post post : posts.getContent()) {
             List<CommentResponse> commentResponses = mapComments(post.getComments());
             List<HistoryResponse> historyResponses = mapHistories(post.getHistory());
 
