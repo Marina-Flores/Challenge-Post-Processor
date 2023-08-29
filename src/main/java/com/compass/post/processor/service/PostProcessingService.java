@@ -93,8 +93,7 @@ public class PostProcessingService {
     }
 
     public void reprocessPost(PostRequest request) throws CloneNotSupportedException, JsonMappingException, JsonProcessingException {
-        List<History> histories = new ArrayList<>();
-        histories.add(new History(PostState.UPDATING, new Date()));
+        History history = new History(PostState.UPDATING, new Date());
 
         validatePostId(request);
 
@@ -106,10 +105,10 @@ public class PostProcessingService {
 
         Post post = (Post) postOp.get().clone();
 
-        for (History history : histories) {
-            history.setPost(post);
-        }
+        history.setPost(post);
+        post.getHistory().add(history);
         post.setComments(null);
+        
         postRepository.save(post);
 
         processPost(request, true);
